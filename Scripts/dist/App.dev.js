@@ -17,6 +17,7 @@ function AddNote(title, text) {
   };
   notes.push(newNote);
   selectedNoteId = newNote.id;
+  saveNotesToStorage();
   UpdateNotePreviewList(notes);
 }
 
@@ -34,6 +35,27 @@ function loadNoteIntoEditor() {
   if (!selectedNote) return;
   titleInput.value = selectedNote.title;
   editor.textContent = selectedNote.body;
+}
+
+function saveNotesToStorage() {
+  localStorage.setItem("notes", JSON.stringify(notes));
+}
+
+function loadNotesFromStorage() {
+  var rawNotes = localStorage.getItem("notes");
+  if (!rawNotes) return;
+
+  try {
+    notes = JSON.parse(rawNotes);
+  } catch (error) {
+    notes = [];
+    return;
+  }
+
+  if (notes.length === 0) return;
+  selectedNoteId = notes[0].id;
+  UpdateNotePreviewList(notes);
+  loadNoteIntoEditor();
 } //new note button
 
 
@@ -56,6 +78,7 @@ titleInput.addEventListener("input", function () {
   if (!note) return;
   note.title = titleInput.value;
   note.lastEdited = Date.now();
+  saveNotesToStorage();
   UpdateNotePreviewList(notes);
 }); //update note preview body and date. 
 
@@ -66,6 +89,7 @@ editor.addEventListener("input", function () {
   if (!note) return;
   note.body = editor.textContent;
   note.lastEdited = Date.now();
+  saveNotesToStorage();
   UpdateNotePreviewList(notes);
 });
 
@@ -92,3 +116,5 @@ function createNotePreview(note) {
   });
   previewContainer.appendChild(noteEl);
 }
+
+loadNotesFromStorage();
