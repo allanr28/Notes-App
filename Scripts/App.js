@@ -5,6 +5,7 @@ let selectedNoteId;
 const titleInput = document.querySelector('#note-title input');
 const editor = document.querySelector('#editor');
 const previewContainer = document.querySelector('#note-preview-container');
+const searchInput = document.querySelector('#note-search');
 const newNoteBtn = document.getElementById("new-note");
 const saveNoteBtn = document.getElementById("save-note");
 let isNewNoteDirty = false;
@@ -21,7 +22,10 @@ function AddNote(title, text){
     selectedNoteId = newNote.id;
     isNewNoteDirty = false;
     saveNotesToStorage();
-    UpdateNotePreviewList(notes);
+    if (searchInput && searchInput.value.trim()) {
+      searchInput.value = "";
+    }
+    renderNotes();
     updateSaveButtonState();
    
 }
@@ -31,6 +35,30 @@ function UpdateNotePreviewList(list){
     list.forEach(note => {
         createNotePreview(note);
     });
+}
+
+function getFilteredNotes() {
+  if (!searchInput) return notes;
+  const query = searchInput.value.trim().toLowerCase();
+  if (!query) return notes;
+
+  return notes.filter(note => {
+    const title = (note.title || "").toLowerCase();
+    const body = (note.body || "").toLowerCase();
+    return title.includes(query) || body.includes(query);
+  });
+}
+
+function renderNotes() {
+  const filtered = getFilteredNotes();
+  if (selectedNoteId && !filtered.some(n => n.id === selectedNoteId)) {
+    selectedNoteId = null;
+    isNewNoteDirty = false;
+    titleInput.value = "";
+    editor.textContent = "";
+    updateSaveButtonState();
+  }
+  UpdateNotePreviewList(filtered);
 }
 
 function loadNoteIntoEditor() {
@@ -69,7 +97,7 @@ function loadNotesFromStorage() {
   if (notes.length === 0) return;
 
   selectedNoteId = notes[0].id;
-  UpdateNotePreviewList(notes);
+  renderNotes();
   loadNoteIntoEditor();
   updateSaveButtonState();
 }
@@ -82,7 +110,7 @@ newNoteBtn.addEventListener("click", (event) => {
     titleInput.value = "";
     editor.textContent = "";
     titleInput.focus();
-    UpdateNotePreviewList(notes);
+    renderNotes();
     updateSaveButtonState();
 });
 
@@ -107,7 +135,7 @@ titleInput.addEventListener("input", () => {
     note.title = titleInput.value;
     note.lastEdited = Date.now();
     saveNotesToStorage();
-    UpdateNotePreviewList(notes);
+    renderNotes();
     updateSaveButtonState();
 });
 
@@ -123,7 +151,7 @@ editor.addEventListener("input", () => {
     note.body = editor.textContent;
     note.lastEdited = Date.now();
     saveNotesToStorage();
-    UpdateNotePreviewList(notes);
+    renderNotes();
     updateSaveButtonState();
 });
 
@@ -158,7 +186,7 @@ function createNotePreview(note) {
         selectedNoteId = note.id;
         isNewNoteDirty = false;
         loadNoteIntoEditor();
-        UpdateNotePreviewList(notes);
+        renderNotes();
         updateSaveButtonState();
     });
 
@@ -167,3 +195,7 @@ function createNotePreview(note) {
 
 loadNotesFromStorage();
 updateSaveButtonState();
+
+if (searchInput) {
+  searchInput.addEventListener("input", renderNotes);
+}

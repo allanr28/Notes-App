@@ -5,6 +5,7 @@ var selectedNoteId;
 var titleInput = document.querySelector('#note-title input');
 var editor = document.querySelector('#editor');
 var previewContainer = document.querySelector('#note-preview-container');
+var searchInput = document.querySelector('#note-search');
 var newNoteBtn = document.getElementById("new-note");
 var saveNoteBtn = document.getElementById("save-note");
 var isNewNoteDirty = false;
@@ -20,7 +21,12 @@ function AddNote(title, text) {
   selectedNoteId = newNote.id;
   isNewNoteDirty = false;
   saveNotesToStorage();
-  UpdateNotePreviewList(notes);
+
+  if (searchInput && searchInput.value.trim()) {
+    searchInput.value = "";
+  }
+
+  renderNotes();
   updateSaveButtonState();
 }
 
@@ -29,6 +35,33 @@ function UpdateNotePreviewList(list) {
   list.forEach(function (note) {
     createNotePreview(note);
   });
+}
+
+function getFilteredNotes() {
+  if (!searchInput) return notes;
+  var query = searchInput.value.trim().toLowerCase();
+  if (!query) return notes;
+  return notes.filter(function (note) {
+    var title = (note.title || "").toLowerCase();
+    var body = (note.body || "").toLowerCase();
+    return title.includes(query) || body.includes(query);
+  });
+}
+
+function renderNotes() {
+  var filtered = getFilteredNotes();
+
+  if (selectedNoteId && !filtered.some(function (n) {
+    return n.id === selectedNoteId;
+  })) {
+    selectedNoteId = null;
+    isNewNoteDirty = false;
+    titleInput.value = "";
+    editor.textContent = "";
+    updateSaveButtonState();
+  }
+
+  UpdateNotePreviewList(filtered);
 }
 
 function loadNoteIntoEditor() {
@@ -68,7 +101,7 @@ function loadNotesFromStorage() {
 
   if (notes.length === 0) return;
   selectedNoteId = notes[0].id;
-  UpdateNotePreviewList(notes);
+  renderNotes();
   loadNoteIntoEditor();
   updateSaveButtonState();
 } //new note button
@@ -80,7 +113,7 @@ newNoteBtn.addEventListener("click", function (event) {
   titleInput.value = "";
   editor.textContent = "";
   titleInput.focus();
-  UpdateNotePreviewList(notes);
+  renderNotes();
   updateSaveButtonState();
 }); //save note button
 
@@ -104,7 +137,7 @@ titleInput.addEventListener("input", function () {
   note.title = titleInput.value;
   note.lastEdited = Date.now();
   saveNotesToStorage();
-  UpdateNotePreviewList(notes);
+  renderNotes();
   updateSaveButtonState();
 }); //update note preview body and date. 
 
@@ -122,7 +155,7 @@ editor.addEventListener("input", function () {
   note.body = editor.textContent;
   note.lastEdited = Date.now();
   saveNotesToStorage();
-  UpdateNotePreviewList(notes);
+  renderNotes();
   updateSaveButtonState();
 });
 
@@ -152,7 +185,7 @@ function createNotePreview(note) {
     selectedNoteId = note.id;
     isNewNoteDirty = false;
     loadNoteIntoEditor();
-    UpdateNotePreviewList(notes);
+    renderNotes();
     updateSaveButtonState();
   });
   previewContainer.appendChild(noteEl);
@@ -160,3 +193,7 @@ function createNotePreview(note) {
 
 loadNotesFromStorage();
 updateSaveButtonState();
+
+if (searchInput) {
+  searchInput.addEventListener("input", renderNotes);
+}
